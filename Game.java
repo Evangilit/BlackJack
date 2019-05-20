@@ -6,18 +6,18 @@ import java.io.InputStreamReader;
 
 public class Game {
 
-    static Player player;
-    static Dealer dealer;
+    static Participant player;
+    static Participant dealer;
     int cardCost;
     boolean turn = true; // чья очередь (если false - то диллера, true - игрока)
     boolean wantOrCanContinue = true; // хочет ли (или может ли ввиду баланса) продолжать игрок
-    Generation generation = new Generation();
+    private Generation generation = new Generation();
+    private BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
     // Начало игры
     public void startGame() {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-        player = new Player();
-        dealer = new Dealer();
+        player = new Participant();
+        dealer = new Participant();
         int l;
         // Выбор уровня сложности
         System.out.println("Выберете уровень сложности 0 или 1");
@@ -42,37 +42,8 @@ public class Game {
 
         // Начинаем саму игру непосредственно
         while (wantOrCanContinue) {
-            // В начале кажого раунда и дилер и игрок обязательно берут по одной карте
-
-            player.clearAll();
-            dealer.clearAll();
-            takePlayerCard();
-            takeDealerCard();
-            if (turn){
-                playerTurn();
-                dealerTurn();
-            } else {
-                dealerTurn();
-                playerTurn();
-            }
-
-            // Результаты раунда
-            if (player.getCurrentSum() > dealer.getCurrentSum()) {
-                System.out.println("Вы выиграли раунд, у вас " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
-                player.setBalance(player.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
-            } else if (player.getCurrentSum() < dealer.getCurrentSum()) {
-                System.out.println("Вы проиграли раунд, у вас " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
-                dealer.setBalance(dealer.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
-            } else {
-                if (turn) {
-                    System.out.println("Вы проиграли раунд так как ходили первыми, у вас " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
-                    player.setBalance(player.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
-                } else {
-                    System.out.println("Вы выиграли раунд так как ходили вторыми, у вас " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
-                    player.setBalance(player.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
-                }
-            }
-            System.out.println("Ваш баланс: " + player.getBalance() + " " + "Баланс диллера: " + dealer.getBalance());
+            // Новый раунд
+            round();
 
             // Идет проверка может ли продолжать игру Игрок ну или сам Диллер
             if (dealer.getBalance() < (2*cardCost)  ){
@@ -85,39 +56,89 @@ public class Game {
             }
 
             // Спрашиваем у игрока будет ли он играть еще раунд
-            System.out.println("Еще рануд?  y - да, n - нет");
-            while (true) {
-                try {
-                    String s = reader.readLine();
-                    if (s.equals("n")){
-                        wantOrCanContinue = false;
-                        break;
-                    } else if (s.equals("y")){
-                        break;
-                    } else {
-                        System.out.println("Пожалуйста введите y - чтобы продолжить, или n - чтобы закончить раунд");
-                    }
-                } catch (IOException e) {
-                    System.out.println("Пожалуйста введите y - чтобы продолжить, или n - чтобы закончить раунд");
-                }
-            }
-
-            changeTurn();
-            generation.setRoundNew(true);
+            wantNewRound();
         }
 
-        System.out.println("Игра закончена");
-        System.out.println("");
+        System.out.println("Игра закончена \n");
         if (player.getBalance() > player.getOriginBalance()) {
             System.out.println("Вы подняли бабла аж на " + (player.getBalance() - player.getOriginBalance()));
-        } else {
+        } else if (player.getBalance() < player.getOriginBalance()){
             System.out.println("Вам лучше не играть на 1 хбет, вы в минусе на " + (player.getOriginBalance() - player.getBalance()));
+        } else {
+            System.out.println("Похоже ничья!");
         }
 
     }
 
     public void round(){
+        // В начале кажого раунда и дилер и игрок обязательно берут по одной карте
+        player.clearAll();
+        dealer.clearAll();
+        takePlayerCard();
+        takeDealerCard();
+        if (turn){
+            playerTurn();
+            if (!player.getOverDone()) {
+                dealerTurn();
+            }
+        } else {
+            dealerTurn();
+            if (!dealer.getOverDone()) {
+                playerTurn();
+            }
+        }
+        roundResult();
+        changeTurn();
+        generation.setRoundNew(true);
+    }
 
+    // Результаты раунда
+    public void roundResult (){
+        if (player.getCurrentSum() > dealer.getCurrentSum()) {
+            if (!player.getOverDone()) {
+                System.out.println("Вы выиграли раунд, у вас " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
+                player.setBalance(player.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
+            } else {
+                System.out.println("Вы проиграли раунд, у вас перебор: " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
+                dealer.setBalance(dealer.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
+            }
+        } else if (player.getCurrentSum() < dealer.getCurrentSum()) {
+            if (!dealer.getOverDone()) {
+                System.out.println("Вы проиграли раунд, у вас " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
+                dealer.setBalance(dealer.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
+            } else {
+                System.out.println("Вы выиграли раунд, у вас " + player.getCurrentSum() + ", у диллера перебор: " + dealer.getCurrentSum());
+                player.setBalance(player.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
+            }
+        } else {
+            if (turn) {
+                System.out.println("Вы проиграли раунд так как ходили первыми, у вас " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
+                player.setBalance(player.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
+            } else {
+                System.out.println("Вы выиграли раунд так как ходили вторыми, у вас " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
+                player.setBalance(player.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
+            }
+        }
+        System.out.println("Ваш баланс: " + player.getBalance() + " " + "Баланс диллера: " + dealer.getBalance());
+    }
+
+    public void wantNewRound (){
+        System.out.println("Еще рануд?  y - да, n - нет");
+        while (true) {
+            try {
+                String s = reader.readLine();
+                if (s.equals("n")){
+                    wantOrCanContinue = false;
+                    break;
+                } else if (s.equals("y")){
+                    break;
+                } else {
+                    System.out.println("Пожалуйста введите y - чтобы продолжить, или n - чтобы закончить раунд");
+                }
+            } catch (IOException e) {
+                System.out.println("Пожалуйста введите y - чтобы продолжить, или n - чтобы закончить раунд");
+            }
+        }
     }
 
     // Метод для выбора уровня сложности 0 или 1
@@ -137,28 +158,28 @@ public class Game {
 
     // Метод ход Игрока
     public void playerTurn (){
-        BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
         String k;
         while (player.getBalance() >= cardCost) {
             try {
                 System.out.println("Текущая сумма карт на руках: " + player.getCurrentSum() + ". Текущий баланс: " + player.getBalance());
                 player.getSeeMyCards();
-                System.out.println("Еще карту?  y или space - да, n - нет");
+                System.out.println("Еще карту?  y - да, n - нет");
                 k = reader.readLine();
-                if (k.equals("y") || k.equals(" ")){
+                if (k.equals("y")){
                     takePlayerCard();
                     if (player.getCurrentSum() > 21){
                         System.out.println("Упс, у вас перебор");
                         player.getSeeMyCards();
+                        player.setOverDone(true);
                         break;
                     }
                 } else if (k.equals("n")) {
                     break;
                 } else {
-                    System.out.println("Пожалуйста введите y или space - чтобы продолжить, или n - чтобы закончить свой ход");
+                    System.out.println("Пожалуйста введите y - чтобы продолжить, или n - чтобы закончить свой ход");
                 }
             } catch (IOException e) {
-                System.out.println("Пожалуйста введите y или space - чтобы продолжить, или n - чтобы закончить свой ход");
+                System.out.println("Пожалуйста введите y - чтобы продолжить, или n - чтобы закончить свой ход");
             }
         }
     }
@@ -169,6 +190,7 @@ public class Game {
                 takeDealerCard();
                 if (dealer.getCurrentSum() > 21){
                     System.out.println("У диллера перебор");
+                    dealer.setOverDone(true);
                     break;
                 }
             } else {
@@ -180,7 +202,7 @@ public class Game {
     public void takePlayerCard (){
         int p = generation.getCard();
         player.addCardToCurrentCards(p);
-        player.calculateSum(p);
+        player.calculateSum();
         player.setBalance(player.getBalance()-cardCost);
         player.setCurrentBet(cardCost);
     }
@@ -188,7 +210,7 @@ public class Game {
     public void takeDealerCard (){
         int d = generation.getCard();
         dealer.addCardToCurrentCards(d);
-        dealer.calculateSum(d);
+        dealer.calculateSum();
         dealer.setBalance(dealer.getBalance()-cardCost);
         dealer.setCurrentBet(cardCost);
     }
