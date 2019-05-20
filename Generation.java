@@ -34,6 +34,7 @@ public class Generation {
         }
         return i;
     }
+
     public int [] createIntCardsCopy() { return Arrays.copyOf(intCards, intCards.length); }
 
     public void setRoundNew (boolean roundNew){ this.roundNew = roundNew;}
