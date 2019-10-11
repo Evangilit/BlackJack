@@ -8,7 +8,7 @@ public class Game {
 
     static Participant player;
     static Participant dealer;
-    int cardCost;
+    static int cardCost;
     boolean turn = true; // чья очередь (если false - то диллера, true - игрока)
     boolean wantOrCanContinue = true; // хочет ли (или может ли ввиду баланса) продолжать игрок
     private Generation generation = new Generation();
@@ -35,7 +35,7 @@ public class Game {
                 } else {
                     System.out.println("Пожалуйста введите либо 0 либо 1");
                 }
-            } catch (IOException e){
+            } catch (Exception e){
                 System.out.println("Пожалуйста введите либо 0 либо 1");
             }
         }
@@ -77,11 +77,13 @@ public class Game {
         takePlayerCard();
         takeDealerCard();
         if (turn){
+            System.out.println("В этом раунде вы ходите первым");
             playerTurn();
             if (!player.getOverDone()) {
                 dealerTurn();
             }
         } else {
+            System.out.println("В этом раунде диллер ходит первым");
             dealerTurn();
             if (!dealer.getOverDone()) {
                 playerTurn();
@@ -113,7 +115,7 @@ public class Game {
         } else {
             if (turn) {
                 System.out.println("Вы проиграли раунд так как ходили первыми, у вас " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
-                player.setBalance(player.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
+                dealer.setBalance(dealer.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
             } else {
                 System.out.println("Вы выиграли раунд так как ходили вторыми, у вас " + player.getCurrentSum() + ", у диллера " + dealer.getCurrentSum());
                 player.setBalance(player.getBalance() + player.getCurrentBet() + dealer.getCurrentBet());
@@ -159,6 +161,7 @@ public class Game {
     // Метод ход Игрока
     public void playerTurn (){
         String k;
+        System.out.println("Ваша очередь");
         while (player.getBalance() >= cardCost) {
             try {
                 System.out.println("Текущая сумма карт на руках: " + player.getCurrentSum() + ". Текущий баланс: " + player.getBalance());
@@ -185,6 +188,7 @@ public class Game {
     }
 
     public void dealerTurn(){
+        System.out.println("Диллер делает свой ход");
         while (dealer.getBalance() >= cardCost) {
             if (dealer.getCurrentSum() <= 15){
                 takeDealerCard();

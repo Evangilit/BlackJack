@@ -9,7 +9,10 @@ public class Participant {
     private int originBalance;
     private HashMap<String, Integer> currentCards = new HashMap<>();
     private boolean overDone; // переменная отвечающая за перебор игрока В РАУНДЕ
-    Generation g = new Generation();
+    private static Generation g;
+    static {
+       g = new Generation();
+    }
 
     // Геттеры для игрока
     public int getOriginBalance() { return originBalance;}
